@@ -1,0 +1,20 @@
+Changes file for Text::Diff
+
+0.11 Mon Dec 10 06:23:00 EST 2001
+    - Remove hardcoded date string from t/general.t's test data, because
+      localtime is used to generate this in Diff.pm and the local machine's
+      timezone (and locale?) can cause the localtime for a given mtime to be
+      quite different.  Reported by  Andreas Marcel Riechert
+      <riechert@pobox.com> of cpan-testers.
+    - Start this Changes file.
+    - Added hunk_header() and hunk_footer() for symmetry in overloading.
+    - Added t/ext_format.t
+
+0.1
+    - Initial public release.
+    - Added filename, filehandle, and string I/O options
+    - API resembles Algorithm::Diff's a bit more
+    - Reimplement output formats as classes so that external (user-supplied)
+      can be specified as class names (My::Diff::Format) and so that they may
+      be inherited from.  Should probably break out hunk_header() from hunk().
+    - Add footer() to all formats

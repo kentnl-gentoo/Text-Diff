@@ -1,6 +1,6 @@
 package Text::Diff ;
 
-$VERSION = 0.1 ;
+$VERSION = 0.11 ;
 
 =head1 NAME
 
@@ -86,13 +86,15 @@ Context.
 
 =item STYLE
 
-"Unified", "Context", "OldStyle", or an object or class reference for a
-class providing C<header()>, C<hunk()>, and C<footer()> methods.
+"Unified", "Context", "OldStyle", or an object or class reference for a class
+providing C<file_header()>, C<hunk_header()>, C<hunk()>, C<hunk_footer()> and
+C<file_footer()> methods.  The two footer() methods are provided for
+overloading only; none of the formats provide them.
 
 Defaults to "Unified" (unlike standard C<diff>, but Unified is what's most
 often used in submitting patches and is the most human readable of the three.
 
-=item LINES_OF_CONTEXT
+=item CONTEXT
 
 How many lines before and after each diff to display.  Ignored on old-style
 diffs.  Defauls to 3.
@@ -184,7 +186,7 @@ sub diff {
     $style = "Unified" unless defined $options->{STYLE}  ;
     $style = "Text::Diff::$style" if exists $internal_styles{$style} ;
 
-    my $ctx_lines = $options->{LINES_OF_CONTEXT} ;
+    my $ctx_lines = $options->{CONTEXT} ;
     $ctx_lines = 3 unless defined $ctx_lines ;
     $ctx_lines = 0 if $style eq "Text::Diff::OldStyle" ;
 
@@ -199,8 +201,11 @@ sub diff {
     my $hunks = 0 ; ## Number of hunks
 
     my $emit_ops = sub {
-        $output_handler->( $style->header( $options ) ) unless $hunks++ ;
-        $output_handler->( $style->hunk( @seqs, @_, $options ) ) ;
+        $output_handler->( $style->file_header(            $options ) )
+	    unless $hunks++ ;
+        $output_handler->( $style->hunk_header(        @_, $options ) ) ;
+        $output_handler->( $style->hunk       ( @seqs, @_, $options ) ) ;
+        $output_handler->( $style->hunk_footer(        @_, $options ) ) ;
     } ;
 
     ## We keep 2*ctx_lines so that if a diff occurs
@@ -238,7 +243,7 @@ sub diff {
         $emit_ops->( \@ops ) ;
     }
 
-    $output_handler->( $style->footer( $options ) ) if $hunks ;
+    $output_handler->( $style->file_footer( $options ) ) if $hunks ;
 
     return defined $output ? $output : $hunks ;
 }
@@ -321,14 +326,26 @@ so diff() can use class names to call the correct set of output routines and so
 that you may inherit from them easily.  There are no constructors or instance
 methods for these classes, though subclasses may provide them if need be.
 
-Each class has header(), hunk(), and footer() methods identical to those
-documented in the Text::Diff::Unified section.  header() is called before the
-hunk() is first called, footer() afterwards.  The default footer function
-is an empty method provided for overloading:
+Each class has file_header(), hunk_header(), hunk(), and footer() methods
+identical to those documented in the Text::Diff::Unified section.  header() is
+called before the hunk() is first called, footer() afterwards.  The default
+footer function is an empty method provided for overloading:
 
     sub footer { return "End of patch\n" }
 
 =over
+
+=head2 Text::Diff::Base
+
+Returns "" for all methods.  No new() provided.
+
+=cut
+
+sub Text::Diff::Base::file_header { return "" }
+sub Text::Diff::Base::hunk_header { return "" }
+sub Text::Diff::Base::hunk        { return "" }
+sub Text::Diff::Base::hunk_footer { return "" }
+sub Text::Diff::Base::file_footer { return "" }
 
 =head2 Text::Diff::Unified
 
@@ -353,9 +370,9 @@ is an empty method provided for overloading:
 
 =over
 
-=item header
+=item file_header
 
-    $s = Text::Diff::Unified->header( $options ) ;
+    $s = Text::Diff::Unified->file_header( $options ) ;
 
 Returns a string containing a unified header.  The sole parameter is the
 options hash passed in to diff(), containing at least:
@@ -374,7 +391,9 @@ to override the default prefixes (default values shown).
 
 =cut
 
-sub Text::Diff::Unified::header {
+@Text::Diff::Unified::ISA = qw( Text::Diff::Base ) ;
+
+sub Text::Diff::Unified::file_header {
     shift ; ## No instance data
     my ( $options ) = @_ ;
 
@@ -382,6 +401,29 @@ sub Text::Diff::Unified::header {
         { FILENAME_PREFIX_A => "---", FILENAME_PREFIX_B => "+++", %$options }
     ) ;
 }
+
+=item Text::Diff::Unified::hunk_header
+
+    Text::Diff::Unified->hunk_header( \@ops, $options ) ;
+
+Returns a string containing the output of one hunk of unified diff.
+
+=cut
+
+sub Text::Diff::Unified::hunk_header {
+    shift ; ## No instance data
+    pop   ; ## Ignore options
+    my $ops = pop ;
+
+    return join( "",
+        "@@ -",
+        _range( $ops, A, "unified" ),
+        " +",
+        _range( $ops, B, "unified" ),
+        " @@\n",
+    ) ;
+}
+
 
 =item Text::Diff::Unified::hunk
 
@@ -399,26 +441,9 @@ sub Text::Diff::Unified::hunk {
 
     my $prefixes = { "+" => "+", " " => " ", "-" => "-" } ;
 
-    return join( "",
-        "@@ -",
-        _range( $ops, A, "unified" ),
-        " +",
-        _range( $ops, B, "unified" ),
-        " @@\n",
-        map _op_to_line( \@_, $_, undef, $prefixes ), @$ops
-    ) ;
+    return join "", map _op_to_line( \@_, $_, undef, $prefixes ), @$ops
 }
 
-
-=item footer
-
-    $s = Text::Diff::Unified->footer( $options ) ;
-
-Returns C<"">.
-
-=cut
-
-sub Text::Diff::Unified::footer { "" }
 
 =back
 
@@ -456,13 +481,21 @@ sub Text::Diff::Unified::footer { "" }
       12
       13
 
+Note: hunk_header() returns only "***************\n".
+
 =cut
 
 
-sub Text::Diff::Context::header {
-    _header { FILENAME_PREFIX_A => "***", FILENAME_PREFIX_B => "---", %{$_[1]} } ;
+@Text::Diff::Context::ISA = qw( Text::Diff::Base ) ;
+
+sub Text::Diff::Context::file_header {
+    _header { FILENAME_PREFIX_A=>"***", FILENAME_PREFIX_B=>"---", %{$_[1]} } ;
 }
 
+
+sub Text::Diff::Context::hunk_header {
+    return "***************\n" ;
+}
 
 sub Text::Diff::Context::hunk {
     shift ; ## No instance data
@@ -499,16 +532,12 @@ sub Text::Diff::Context::hunk {
     my $a_prefixes = { "+" => undef, " " => "  ", "-" => "- ",  "!" => "! " };
 
     return join( "",
-        "***************\n",
         "*** ", $a_range, " ****\n",
         map( _op_to_line( \@_, $_, A, $a_prefixes ), @$ops ),
         "--- ", $b_range, " ----\n",
         map( _op_to_line( \@_, $_, B, $b_prefixes ), @$ops ),
     ) ;
 }
-
-sub Text::Diff::Context::footer { "" }
-
 =head2 Text::Diff::OldStyle
 
     5c5
@@ -520,11 +549,30 @@ sub Text::Diff::Context::footer { "" }
     12d12
     < 11d
 
-Note: no header, Text::Diff::OldStyle::header always returns C<"">.
+Note: no file_header().
 
 =cut
 
-sub Text::Diff::OldStyle::header { "" }
+@Text::Diff::OldStyle::ISA = qw( Text::Diff::Base ) ;
+
+sub _op {
+    my $ops = shift ;
+    my $op = $ops->[0]->[OPCODE] ;
+    $op = "c" if grep $_->[OPCODE] ne $op, @$ops ;
+    $op = "a" if $op eq "+" ;
+    $op = "d" if $op eq "-" ;
+    return $op ;
+}
+
+sub Text::Diff::OldStyle::hunk_header {
+    shift ; ## No instance data
+    pop   ; ## ignore options
+    my $ops = pop ;
+
+    my $op = _op $ops ;
+
+    return join "", _range( $ops, A, "" ), $op, _range( $ops, B, "" ), "\n" ;
+}
 
 sub Text::Diff::OldStyle::hunk {
     shift ; ## No instance data
@@ -532,33 +580,24 @@ sub Text::Diff::OldStyle::hunk {
     my $ops = pop ;
     ## Leave the sequences in @_[0,1]
 
-    my $a_range = _range( $ops, A, "" ) ;
-    my $b_range = _range( $ops, B, "" ) ;
-
     my $a_prefixes = { "+" => undef,  " " => undef, "-" => "< "  } ;
     my $b_prefixes = { "+" => "> ",   " " => undef, "-" => undef } ;
 
-    my $op = $ops->[0]->[OPCODE] ;
-    $op = "c" if grep $_->[OPCODE] ne $op, @$ops ;
-    $op = "a" if $op eq "+" ;
-    $op = "d" if $op eq "-" ;
+    my $op = _op $ops ;
 
     return join( "",
-        $a_range, $op, $b_range, "\n",
         map( _op_to_line( \@_, $_, A, $a_prefixes ), @$ops ),
         $op eq "c" ? "---\n" : (),
         map( _op_to_line( \@_, $_, B, $b_prefixes ), @$ops ),
     ) ;
 }
 
-sub Text::Diff::OldStyle::footer { "" }
-
 =head1 LIMITATIONS
 
 Must suck both input files entirely in to memory and store them with a normal
 amount of Perlish overhead (one array location) per record.  This is implied by
 the implementation of Algorithm::Diff, which takes two arrays.  If
-Algorithm::Diff ever offers and incremental mode, this can be changed (contact
+Algorithm::Diff ever offers an incremental mode, this can be changed (contact
 the maintainers of Algorithm::Diff and Text::Diff if you need this; it
 shouldn't be too terribly hard to tie arrays in this fashion).
 

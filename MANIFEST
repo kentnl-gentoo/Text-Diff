@@ -1,7 +1,9 @@
+Changes
 Diff.pm
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
+t/ext_format.t
 t/general.t
 t/inputs.t
 t/keygen.t

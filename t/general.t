@@ -15,10 +15,10 @@ my @tests= (
         'STYLE => "Context"'
     ],
     ["-C0",
-        'STYLE => "Context", LINES_OF_CONTEXT => 0'
+        'STYLE => "Context", CONTEXT => 0'
     ],
     ["-U0",
-        'STYLE => "Unified", LINES_OF_CONTEXT => 0'
+        'STYLE => "Unified", CONTEXT => 0'
     ],
     ["",
         'STYLE => "OldStyle"'     
@@ -43,13 +43,17 @@ if ( grep "--update", @ARGV ) {
     open A, ">A" or die $! ; print A @A ; close A ;
     open B, ">B" or die $! ; print B @B ; close B ;
 
-    my $A_mtime = (stat "A")[9] ; 
-    my $B_mtime = (stat "B")[9] ; 
+    my $mtime_A = time ;
+    my $mtime_B = $mtime_A + 1 ;
+
+    utime $mtime_A, $mtime_A, "A" or die $! ;
+    utime $mtime_B, $mtime_B, "B" or die $! ;
+
     my $file_options = <<END_OPTIONS ;
 FILENAME_A => "A",
-MTIME_A => $A_mtime,
+MTIME_A => $mtime_A,
 FILENAME_B => "B",
-MTIME_B => $B_mtime
+MTIME_B => $mtime_B,
 END_OPTIONS
 
     open ME, "<$0" or die $! ;
@@ -60,16 +64,19 @@ END_OPTIONS
     print BAK $me or die $! ;
     close BAK or die $! ;
 
+    my @diffs = map scalar `diff $_->[0] A B`, @tests ;
+
+    for ( @diffs ) {
+        s/(Sun|Mon|Tue|Wed|Thu|Fri|Sat).*/<MTIME_A>/m ;
+        s/(Sun|Mon|Tue|Wed|Thu|Fri|Sat).*/<MTIME_B>/m ;
+    }
+
     $me =~ s/^(__DATA__\n).*//ms ;
     open ME, ">$0" or die $! ;
     print ME
         $me,
         "__DATA__\n",
-        join(
-            $sep, 
-            "$file_options\n",
-            map( "" . `diff $_->[0] A B`, @tests ),
-        )
+        join $sep, "$file_options\n", @diffs
     or die $! ;
 
     close ME or die $! ;
@@ -90,10 +97,21 @@ die "Found " . @data,
 my @file_options = eval "(" . shift( @data ) . ")" ;
 die if $@ ;
 
+my ( $mtime_A, $mtime_B ) ;
+
+{
+    my %o = @file_options ;
+    $mtime_A = $o{MTIME_A} ;
+    $mtime_B = $o{MTIME_B} ;
+}
+
 plan tests => scalar @tests ;
 for ( @tests ) {
     my ( $diff_opts, $Diff_opts ) = @$_ ;
     my $expect = shift @data ;
+
+    $expect =~ s/<MTIME_A>/localtime $mtime_A/e ;
+    $expect =~ s/<MTIME_B>/localtime $mtime_B/e ;
 
     my @Diff_opts = eval "($Diff_opts)" ;
     die if $@ ;
@@ -164,13 +182,13 @@ for ( @tests ) {
 
 __DATA__
 FILENAME_A => "A",
-MTIME_A => 1007888157,
+MTIME_A => 1007983243,
 FILENAME_B => "B",
-MTIME_B => 1007888157
+MTIME_B => 1007983244,
 
 ----8<--------8<--------8<--------8<--------8<--------8<--------8<----
---- A	Sun Dec  9 03:55:57 2001
-+++ B	Sun Dec  9 03:55:57 2001
+--- A	<MTIME_A>
++++ B	<MTIME_B>
 @@ -2,13 +2,13 @@
  2
  3
@@ -188,8 +206,8 @@ MTIME_B => 1007888157
  12
  13
 ----8<--------8<--------8<--------8<--------8<--------8<--------8<----
-*** A	Sun Dec  9 03:55:57 2001
---- B	Sun Dec  9 03:55:57 2001
+*** A	<MTIME_A>
+--- B	<MTIME_B>
 ***************
 *** 2,14 ****
   2
@@ -220,8 +238,8 @@ MTIME_B => 1007888157
   12
   13
 ----8<--------8<--------8<--------8<--------8<--------8<--------8<----
-*** A	Sun Dec  9 03:55:57 2001
---- B	Sun Dec  9 03:55:57 2001
+*** A	<MTIME_A>
+--- B	<MTIME_B>
 ***************
 *** 5 ****
 ! 5d
@@ -236,8 +254,8 @@ MTIME_B => 1007888157
 - 11d
 --- 12 ----
 ----8<--------8<--------8<--------8<--------8<--------8<--------8<----
---- A	Sun Dec  9 03:55:57 2001
-+++ B	Sun Dec  9 03:55:57 2001
+--- A	<MTIME_A>
++++ B	<MTIME_B>
 @@ -5 +5 @@
 -5d
 +5a

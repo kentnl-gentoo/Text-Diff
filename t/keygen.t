@@ -3,7 +3,6 @@
 use strict ;
 use Test ;
 use Text::Diff ;
-use Algorithm::Diff qw( traverse_sequences ) ;
 
 my @A = map "$_\n", qw( 1 2  3_ 4_ ) ;
 my @B = map "$_\n", qw( 1 2_ 3  4_ ) ;
