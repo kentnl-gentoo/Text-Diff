@@ -1,6 +1,6 @@
 package Text::Diff;
 
-$VERSION = 0.31;
+$VERSION = 0.32;
 
 =head1 NAME
 

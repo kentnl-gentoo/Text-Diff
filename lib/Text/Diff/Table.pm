@@ -71,6 +71,7 @@ call; so far I'm choosing not to.
 
 @ISA = qw( Text::Diff::Base Exporter );
 @EXPORT_OK = qw( expand_tabs );
+$VERSION = 1.0;
 
 use strict;
 use Carp;
@@ -194,10 +195,12 @@ sub hunk {
         }
         else {
             ## not using \z here for backcompat reasons.
-            $A->[1] =~ /^(\s*?)([^ \t].*?)(\s*)(?![\n\r])$/s;
+            $A->[1] =~ /^(\s*?)([^ \t].*?)?(\s*)(?![\n\r])$/s;
             my ( $l_ws_A, $body_A, $t_ws_A ) = ( $1, $2, $3 );
-            $B->[1] =~ /^(\s*?)([^ \t].*?)(\s*)(?![\n\r])$/s;
+	    $body_A = "" unless defined $body_A;
+            $B->[1] =~ /^(\s*?)([^ \t].*?)?(\s*)(?![\n\r])$/s;
             my ( $l_ws_B, $body_B, $t_ws_B ) = ( $1, $2, $3 );
+	    $body_B = "" unless defined $body_B;
 
             if ( $t_ws_A ne $t_ws_B ) {
                 $t_ws_A = escape_ws $t_ws_A;
