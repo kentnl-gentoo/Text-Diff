@@ -37,6 +37,8 @@ sub {
     unlink "output.t.foo" or warn $! ;
 },
 
+sub { ok 0 < index( diff( \"\n", \"", { STYLE => "Table" } ), "\\n" ) },
+
 # test for bug reported by Ilya Martynov <ilya@martynov.org> 
 sub { ok diff( \"", \"" ), "" },
 sub { ok diff( \"A", \"A" ), "" },

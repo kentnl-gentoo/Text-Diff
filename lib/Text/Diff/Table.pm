@@ -71,7 +71,7 @@ call; so far I'm choosing not to.
 
 @ISA = qw( Text::Diff::Base Exporter );
 @EXPORT_OK = qw( expand_tabs );
-$VERSION = 1.1;
+$VERSION = 1.2;
 
 use strict;
 use Carp;
@@ -184,10 +184,15 @@ sub hunk {
                         $A == $missing_elt ? "B" :
                         $A->[1] eq $B->[1]  ? "="
                                             : "*";
-
         if ( $elt_type ne "*" ) {
-            $A->[1] = escape trim_trailing_line_ends expand_tabs $A->[1];
-            $B->[1] = escape trim_trailing_line_ends expand_tabs $B->[1];
+	    if ( $elt_type eq "=" || $A->[1] =~ /\S/ || $B->[1] =~ /\S/ ) {
+		$A->[1] = escape trim_trailing_line_ends expand_tabs $A->[1];
+		$B->[1] = escape trim_trailing_line_ends expand_tabs $B->[1];
+	    }
+	    else {
+		$A->[1] = escape $A->[1];
+		$B->[1] = escape $B->[1];
+	    }
         }
         else {
             ## not using \z here for backcompat reasons.
