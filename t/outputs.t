@@ -36,6 +36,10 @@ sub {
     ok slurp "output.t.foo", $expected ;
     unlink "output.t.foo" or warn $! ;
 },
+
+# test for bug reported by Ilya Martynov <ilya@martynov.org> 
+sub { ok diff( \"", \"" ), "" },
+sub { ok diff( \"A", \"A" ), "" },
 ) ;
 
 plan tests => scalar @tests ;

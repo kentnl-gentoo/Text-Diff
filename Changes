@@ -1,5 +1,9 @@
 Changes file for Text::Diff
 
+0.33 Mon Jul  8 16:29:01 EDT 2002
+    - Make diff() return "" instead of 0 when comparing two empty
+      things.  Patch from Rolf Grossmann <grossman@progtech.net>.
+
 0.32 Thu Mar 14 13:37:51 EST 2002
     - Fix escaping of all-whitespace strings.
 

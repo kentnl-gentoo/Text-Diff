@@ -1,6 +1,6 @@
 package Text::Diff;
 
-$VERSION = 0.32;
+$VERSION = 0.33;
 
 =head1 NAME
 
@@ -206,6 +206,7 @@ sub diff {
     my $output_handler = $options->{OUTPUT};
     my $type = ref $output_handler ;
     if ( ! defined $output_handler ) {
+        $output = "";
         $output_handler = sub { $output .= shift };
     }
     elsif ( $type eq "CODE" ) {
