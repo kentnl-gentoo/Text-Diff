@@ -9,3 +9,4 @@ t/general.t
 t/inputs.t
 t/keygen.t
 t/outputs.t
+t/table.t

@@ -71,7 +71,7 @@ call; so far I'm choosing not to.
 
 @ISA = qw( Text::Diff::Base Exporter );
 @EXPORT_OK = qw( expand_tabs );
-$VERSION = 1.0;
+$VERSION = 1.1;
 
 use strict;
 use Carp;
@@ -88,6 +88,10 @@ my %escapes = map {
     map( sprintf( "\\x%02x", $_ ), ( 0..31, 127..255 ) ),
 #    map( "\\c$_", "A".."Z"),
     "\\t", "\\n", "\\r", "\\f", "\\b", "\\a", "\\e"
+    ## NOTE: "\\\\" is not here because some things are explicitly
+    ## escaped before escape() is called and we don't want to
+    ## double-escape "\".  Also, in most texts, leaving "\" more
+    ## readable makes sense.
 ) ;
 
 
@@ -106,14 +110,6 @@ sub expand_tabs($) {
 	}
     }ge;
 
-    return $s;
-}
-
-
-sub escape_ws($) {
-    my $s = shift;
-    $s =~ s/ /\\s/g;
-    $s =~ s/\t/\\t/g;
     return $s;
 }
 
@@ -184,7 +180,7 @@ sub hunk {
         ## tabs are expanded, trailing newelts removed, etc.  For differing
         ## elts, make invisible characters visible if the invisible characters
         ## differ.
-        my $elt_type = $B == $missing_elt ? "A" :
+        my $elt_type =  $B == $missing_elt ? "A" :
                         $A == $missing_elt ? "B" :
                         $A->[1] eq $B->[1]  ? "="
                                             : "*";
@@ -202,30 +198,64 @@ sub hunk {
             my ( $l_ws_B, $body_B, $t_ws_B ) = ( $1, $2, $3 );
 	    $body_B = "" unless defined $body_B;
 
+            my $added_escapes;
+
+            if ( $l_ws_A ne $l_ws_B ) {
+                ## Make leading tabs visible.  Other non-' ' chars
+                ## will be dealt with in escape(), but this prevents
+                ## tab expansion from hiding tabs by making them
+                ## look like ' '.
+                $added_escapes = 1 if $l_ws_A =~ s/\t/\\t/g;
+                $added_escapes = 1 if $l_ws_B =~ s/\t/\\t/g;
+            }
+
             if ( $t_ws_A ne $t_ws_B ) {
-                $t_ws_A = escape_ws $t_ws_A;
-                $t_ws_B = escape_ws $t_ws_B;
+                ## Only trailing whitespace gets the \s treatment
+                ## to make it obvious what's going on.
+                $added_escapes = 1 if $t_ws_A =~ s/ /\\s/g;
+                $added_escapes = 1 if $t_ws_B =~ s/ /\\s/g;
+                $added_escapes = 1 if $t_ws_A =~ s/\t/\\t/g;
+                $added_escapes = 1 if $t_ws_B =~ s/\t/\\t/g;
             }
             else {
                 $t_ws_A = $t_ws_B = "";
             }
 
-            ## Only space-escape these if otherwise identical
-            ( my $squeezed_A = $body_A ) =~ s/\s+/-/g;
-            ( my $squeezed_B = $body_B ) =~ s/\s+/-/g;
+            my $do_tab_escape = $added_escapes || do {
+                my $expanded_A = expand_tabs join( $body_A, $l_ws_A, $t_ws_A );
+                my $expanded_B = expand_tabs join( $body_B, $l_ws_B, $t_ws_B );
+                $expanded_A eq $expanded_B;
+            };
 
-            if ( $squeezed_A eq $squeezed_B ) {
-                $body_A =~ s/\t/\\t/g;
-                $body_B =~ s/\t/\\t/g;
+            my $do_back_escape = $do_tab_escape || do {
+                my ( $unescaped_A, $escaped_A,
+                     $unescaped_B, $escaped_B
+                ) =
+                    map
+                        join( "", /(\\.)/g ),
+                        map {
+                            ( $_, escape $_ )
+                        }
+                        expand_tabs join( $body_A, $l_ws_A, $t_ws_A ),
+                        expand_tabs join( $body_B, $l_ws_B, $t_ws_B );
+                $unescaped_A ne $unescaped_B && $escaped_A eq $escaped_B;
+            };
+
+            if ( $do_back_escape ) {
+                $body_A =~ s/\\/\\\\/g;
+                $body_B =~ s/\\/\\\\/g;
             }
 
-            if ( $l_ws_A ne $l_ws_B ) {
-                $l_ws_A =~ s/\t/\\t/g;
-                $l_ws_B =~ s/\t/\\t/g;
+            my $line_A = join $body_A, $l_ws_A, $t_ws_A;
+            my $line_B = join $body_B, $l_ws_B, $t_ws_B;
+
+            unless ( $do_tab_escape ) {
+                $line_A = expand_tabs $line_A;
+                $line_B = expand_tabs $line_B;
             }
 
-            $A->[1] = escape expand_tabs join "", $l_ws_A, $body_A, $t_ws_A;
-            $B->[1] = escape expand_tabs join "", $l_ws_B, $body_B, $t_ws_B;
+            $A->[1] = escape $line_A;
+            $B->[1] = escape $line_B;
         }
 
         push @elts, [ @$A, @$B, $elt_type ];

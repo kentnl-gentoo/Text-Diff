@@ -1,4 +1,3 @@
-BEGIN { use Config; @INC = grep index( $_, ( defined $Config{sitelib_stem} && length $Config{sitelib_stem} ) ? $Config{sitelib_stem} : $Config{sitelibexp}  ), @INC }
 use ExtUtils::MakeMaker;
 
 use strict ;
