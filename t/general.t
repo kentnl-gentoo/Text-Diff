@@ -5,8 +5,9 @@ use Test ;
 use Text::Diff ;
 use Algorithm::Diff qw( traverse_sequences ) ;
 
-## Each of these results in one test file.  Each specifies options to pass
-## to "diff" right now, and options to pass to Diff when the tests are run.
+## Each test specifies options to pass to "diff" when the --update option
+## is present in @ARGV and options to pass to Text::Diff::diff when the
+## tests are run.
 my @tests= (
     ["-u", 
         ''

@@ -4,7 +4,7 @@ use strict ;
 
 WriteMakefile(
     'NAME'          => 'Text::Diff',
-    'VERSION_FROM'  => 'Diff.pm',
+    'VERSION_FROM'  => 'lib/Text/Diff.pm',
     'PREREQ_PM'     => {
         'Algorithm::Diff'  => 0,
     },
