@@ -1,5 +1,10 @@
 Changes file for Text::Diff
 
+0.31 Wed Feb  6 05:36:47 EST 2002
+    - Remove stray $SIG{__DIE__} that was confessing on every die.
+
+0.3 Undocumented (sorry)
+
 0.11 Mon Dec 10 06:23:00 EST 2001
     - Remove hardcoded date string from t/general.t's test data, because
       localtime is used to generate this in Diff.pm and the local machine's

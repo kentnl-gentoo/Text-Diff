@@ -1,6 +1,6 @@
 package Text::Diff;
 
-$VERSION = 0.3;
+$VERSION = 0.31;
 
 =head1 NAME
 
@@ -143,8 +143,6 @@ present or "Use of undefined variable" warnings will be generated (except
 on C<OldStyle> diffs, which ignores these options).
 
 =cut
-
-$SIG{__DIE__} = \&Carp::confess;
 
 my %internal_styles = (
     Unified  => undef,
