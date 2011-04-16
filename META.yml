@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Text-Diff
-version:            1.37
+version:            1.40
 abstract:           Perform diffs on files and record sets
 author:
     - Adam Kennedy <adamk@cpan.org>
@@ -10,15 +10,16 @@ configure_requires:
     ExtUtils::MakeMaker:  0
 build_requires:
     ExtUtils::MakeMaker:  0
-    Test:                 0
 requires:
     Algorithm::Diff:  1.19
     Exporter:         0
+resources:
+    repository:  https://github.com/Ovid/Text-Diff
 no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.50
+generated_by:       ExtUtils::MakeMaker version 6.56
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4
