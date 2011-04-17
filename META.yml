@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Text-Diff
-version:            1.40
+version:            1.41
 abstract:           Perform diffs on files and record sets
 author:
     - Adam Kennedy <adamk@cpan.org>
