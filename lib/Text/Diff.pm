@@ -7,7 +7,7 @@ use Carp            qw/ croak confess /;
 use Exporter        ();
 use Algorithm::Diff ();
 
-our $VERSION = '1.41_01';
+our $VERSION = '1.42';
 our @ISA     = qw/ Exporter /;
 our @EXPORT  = qw/ diff /;
 
@@ -627,7 +627,7 @@ differing elements by selectively escaping whitespace:
   * 9|embedded ws               |embedded\tws              *
   +--+--------------------------+--------------------------+
 
-See L</Text::Diff::Table> for more details, including how the whitespace
+See L<Text::Diff::Table> for more details, including how the whitespace
 escaping works.
 
 =head2 Text::Diff::Context
