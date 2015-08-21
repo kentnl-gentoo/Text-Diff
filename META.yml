@@ -22,6 +22,6 @@ requires:
   Exporter: '0'
   perl: '5.006'
 resources:
-  repository: https://github.com/Ovid/Text-Diff
-version: '1.42'
+  repository: https://github.com/neilbowers/Text-Diff
+version: '1.43'
 x_serialization_backend: 'CPAN::Meta::YAML version 0.016'
